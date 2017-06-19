@@ -1,10 +1,9 @@
-import time
 import logging
 import Pyro4
 
-from util import invoke_cmd, pipe_cmds, Process, arbitrary_tunnel, check_connection
-from autoreconnectingproxy import AutoReconnectingProxy
-from . import module_logger, configuration
+from .util import arbitrary_tunnel, check_connection
+from .autoreconnectingproxy import AutoReconnectingProxy
+from . import module_logger
 
 class TunnelError(Pyro4.errors.CommunicationError):
     pass
@@ -12,7 +11,7 @@ class TunnelError(Pyro4.errors.CommunicationError):
 class Pyro4Tunnel(object):
 
     def __init__(self,
-                remote_ip,
+                remote_server_name='localhost',
                 relay_ip='localhost',
                 remote_port=22,
                 remote_username="",
@@ -21,13 +20,14 @@ class Pyro4Tunnel(object):
                 local_forwarding_port=None):
 
         self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
-        self.remote_ip = remote_ip
+        self.remote_server_name = remote_server_name
         self.relay_ip = relay_ip
         self.remote_port = remote_port
         self.remote_username = remote_username
         self.ns_host = ns_host
         self.ns_port = ns_port
         self.local_forwarding_port = local_forwarding_port
+        self.local = False
         if not self.local_forwarding_port:
             self.local_forwarding_port = self.ns_port
         self.processes = []
@@ -39,9 +39,9 @@ class Pyro4Tunnel(object):
         Returns:
             Pyro4.naming.NameServer
         """
-        self.logger.info("Attempting to find remote nameserver. Remote IP: {}, NS port: {}".format(self.remote_ip, self.ns_port))
+        self.logger.info("Attempting to find remote nameserver. Remote IP: {}, NS port: {}".format(self.remote_server_name, self.ns_port))
         # First we create ssh tunnel to remote ip.
-        proc = arbitrary_tunnel(self.remote_ip, self.relay_ip, self.local_forwarding_port, self.ns_port,
+        proc, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, self.local_forwarding_port, self.ns_port,
                          port=self.remote_port, username=self.remote_username)
         self.processes.append(proc)
         # now we check the connection to see if its running.
@@ -50,10 +50,27 @@ class Pyro4Tunnel(object):
         else:
             # Would be cool to add ip address and stuff to error message.
             exc = TunnelError("Failed to find NameServer on tunnel.")
-            exc.details = {'remote_ip':self.remote_ip}
+            exc.details = {'remote_server_name':self.remote_server_name}
             raise exc
 
-    def get_remote_object(self, remote_obj_name, remote_obj_port=None, remote_obj_id=None, auto=True):
+    def register_remote_daemon(self, daemon):
+        """
+        Args:
+            daemon (Pyro4.Daemon):
+        Returns:
+            bool: Whether or not the connection was already there.
+        """
+        if self.local:
+            return None
+        else:
+            daemon_host, daemon_port = daemon.locationStr.split(":")
+            proc_daemon, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, daemon_port,
+                                           daemon_port, username=self.remote_username,
+                                           port=self.remote_port, reverse=True)
+            self.processes.append(proc_daemon)
+        return existing
+
+    def get_remote_object(self, remote_obj_name, remote_obj_port=None, remote_obj_id=None, auto=False):
         """
         Grab an object registered on the remote nameserver.
         Args:
@@ -65,7 +82,7 @@ class Pyro4Tunnel(object):
         obj_uri = self.ns.lookup(remote_obj_name)
         obj_proxy = Pyro4.Proxy(obj_uri)
         obj_host, obj_port = obj_uri.location.split(":")
-        proc = arbitrary_tunnel(self.remote_ip, self.relay_ip, obj_port,
+        proc, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, obj_port,
                                     obj_port, username=self.remote_username, port=self.remote_port)
 
         self.processes.append(proc)
@@ -77,7 +94,7 @@ class Pyro4Tunnel(object):
             return obj_proxy
         else:
             exc = TunnelError("Failed to find remote object on remote nameserver.")
-            exc.details = {'remote_ip':self.remote_ip}
+            exc.details = {'remote_server_name':self.remote_server_name}
             raise exc
 
 if __name__ == '__main__':

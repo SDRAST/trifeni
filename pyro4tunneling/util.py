@@ -6,7 +6,8 @@ import signal
 import shlex
 import subprocess
 
-from . import module_logger, configuration
+from . import module_logger
+from .configuration import config
 
 util_logger = logging.getLogger(module_logger.name+".util")
 
@@ -123,10 +124,10 @@ def check_connection(callback, timeout=1.0, attempts=10, args=(), kwargs={}):
     while attempt_i < attempts:
         try:
             callback(*args, **kwargs)
-            module_logger.info("Successfully connected.")
+            module_logger.debug("Successfully connected.")
             return True
         except Exception as e:
-            module_logger.info("Connection failed: {}. Timing out".format(e))
+            module_logger.debug("Connection failed: {}. Timing out".format(e))
             time.sleep(timeout)
             attempt_i += 1
     module_logger.error("Connection failed completely.")
@@ -159,41 +160,40 @@ def arbitrary_tunnel(remote_ip, relay_ip,
             or else Process instance, the corresponds to already running tunnel command.
 
     """
-    module_logger.debug("Configuration: {}".format(configuration))
+    util_logger.debug("Configuration: {}".format(config.hosts))
     # Regular or reverse tunnel?
     if reverse:
         tag = "-R"
     else:
         tag = "-L"
 
-    # Read the .ssh/config for list of hosts.
-    ssh_config_path = os.path.join(os.path.expanduser("~"), ".ssh/config")
-    with open(ssh_config_path, 'r') as f_config:
-        ssh_config = f_config.read()
+    command = None
 
-    pattern = re.compile("host (.*)\n")
-    hosts = [match for match in re.findall(pattern, ssh_config)]
+    if remote_ip in config.hosts:
+        if config.hosts[remote_ip] == list():
+            command_template = "ssh -N {0} {1}:{2}:{3} {4}"
+            command = command_template.format(tag, local_port, relay_ip, remote_port, remote_ip)
+        else:
+            remote_ip, username, port = config.hosts[remote_ip]
 
-    if remote_ip in hosts:
-        command_template = "ssh -N {0} {1}:{2}:{3} {4}"
-        command = command_template.format(tag, local_port, relay_ip, remote_port, remote_ip)
-    else:
+    if not command:
         command_template = "ssh -N -l {0} -p {1} {2} {3}:{4}:{5} {6}"
         command = command_template.format(username, port,
                                 tag, local_port, relay_ip,
                                 remote_port, remote_ip)
 
     command_relay = "{0} {1}:{2}:{3} {4}".format(tag, local_port, relay_ip, remote_port, remote_ip)
-    ssh_proc = pipe_cmds('ps x', 'grep ssh')
+    ssh_proc = [str(proc) for proc in pipe_cmds('ps x', 'grep ssh')]
     for proc in ssh_proc:
         if command_relay in proc:
             bp = Process(ps_line=proc, command_name='ssh')
             module_logger.debug("Found matching process: {}, pid: {}".format(bp.name,bp.pid))
-            return bp
+            return (bp, True)
     module_logger.debug("Invoking command {}".format(command))
     p = invoke_cmd(command)
-    return p
+    return (p, False)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    kill_processes('ssh', '-L')
+    # kill_processes('ssh', '-L')
+
