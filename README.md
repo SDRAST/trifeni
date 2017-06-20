@@ -22,11 +22,47 @@ we can access it locally.
 
 ```python
 me@local: python
-$> from pyro4tunneling import Pyro4Tunnel
-$> t = Pyro4Tunnel('remote')
-$> basic_server = t.get_remote_object('BasicServer')
-$> basic_server.square(2)
+>>> from pyro4tunneling import Pyro4Tunnel
+>>> t = Pyro4Tunnel(remote_server_name='remote', remote_port=22, ns_port=9090, remote_username="me")
+>>> basic_server = t.get_remote_object('BasicServer')
+>>> basic_server.square(2)
 4
 ```
 
-As of version 0.1.0, the module doesn't clean up ssh connections.
+#### Configuration
+
+Let's say that you get tired of writing in the ssh details for a remote machine. `pyro4tunneling` has a few ways of 
+dealing with this. The first is to add the remote server details to your `~/.ssh/config` file.
+This requires no further configuration; `pyro4tunneling` automatically looks in this file to extract ssh configuration information. 
+
+You can also provide dictionary or JSON file configurations. A dictionary configuration looks like the following:
+
+```python
+from pyro4tunneling import config, Pyro4Tunnel
+
+config.ssh_configure({'remote': ["hostname", "myname", 22]})
+
+tunnel = Pyro4Tunnel('remote',ns_port=9090)
+proxy = tunnel.get_remote_object("BasicServer")
+```
+
+A JSON file configurations looks like the following:
+
+```python
+# json_config.py
+from pyro4tunneling import config, Pyro4Tunnel
+
+config.ssh_configure("./pyro4tunneling.json")
+
+tunnel = Pyro4Tunnel('remote',ns_port=9090)
+proxy = tunnel.get_remote_object("BasicServer")
+
+```
+
+```json
+// pyro4tunneling.json. Note that most parsers won't read comments. 
+{"remote":["hostname", "username", 22]}
+```
+
+See the examples directory for more information.
+
