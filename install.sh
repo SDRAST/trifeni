@@ -28,8 +28,10 @@ if [[ $ARG == "-i" ]]; then
     EXITCODE=$?
     if [[ $EXITCODE -eq 0 ]]; then
         echo -e "\rRunning setup.py... Complete!"
+        exit 0
     else
         echo -e "\rRunning setup.py... Failed."
+        exit 1
     fi
 elif [[ $ARG == "-u" ]]; then
     echo "Attempting to uninstall"
