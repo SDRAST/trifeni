@@ -14,7 +14,7 @@ function checkVirutalEnv {
             exit 0
         fi
     else
-        echo "Installing inside a Virtual Environment: ${VIRTUAL_ENV}"
+        echo "Installing ${PACKAGE_NAME} inside a Virtual Environment: ${VIRTUAL_ENV}"
     fi
 }
 
@@ -41,7 +41,7 @@ if [[ ${ARG} == "-i" ]]; then
         exit 1
     fi
 elif [[ ${ARG} == "-u" ]]; then
-    echo "Attempting to uninstall"
+    echo "Attempting to uninstall ${PACKAGE_NAME}"
     if [[ -e ${INSTALL_FILES} ]]; then
         echo -n "Found egg files. Deleting... "
         xargs rm <${INSTALL_FILES}
