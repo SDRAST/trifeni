@@ -30,7 +30,8 @@ fi
 if [[ ${ARG} == "-i" ]]; then
     checkVirutalEnv
     echo -n "Running setup.py..."
-    python ${INSTALL_DIR}/setup.py install --record ${INSTALL_FILES} >>${INSTALL_LOG} 2>&1
+    cd ${INSTALL_DIR}
+    python setup.py install --record ${INSTALL_FILES} >>${INSTALL_LOG} 2>&1
     EXITCODE=$?
     if [[ ${EXITCODE} -eq 0 ]]; then
         echo -e "\rRunning setup.py... Complete!"
