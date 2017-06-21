@@ -18,7 +18,7 @@ function checkVirutalEnv {
             exit 0
         fi
     else
-        echo -e "Installing ${PACKAGE_NAME} inside a Virtual Environment: ${BLUE}${VIRTUAL_ENV}${NC}"
+        echo -e "${PACKAGE_NAME} Installer: Using Virtual Environment: ${BLUE}${VIRTUAL_ENV}${NC}"
     fi
 }
 
@@ -33,26 +33,26 @@ fi
 
 if [[ ${ARG} == "-i" ]]; then
     checkVirutalEnv
-    echo -n "Running setup.py..."
+    echo -ne "${PACKAGE_NAME} Installer: Running setup.py..."
     cd ${INSTALL_DIR}
     python setup.py install --record ${INSTALL_FILES} >>${INSTALL_LOG} 2>&1
     EXITCODE=$?
     if [[ ${EXITCODE} -eq 0 ]]; then
-        echo -e "\rRunning setup.py... ${GREEN}Complete!${NC}"
+        echo -e "\r${PACKAGE_NAME} Installer: Running setup.py... ${GREEN}Complete!${NC}"
         exit 0
     else
-        echo -e "\rRunning setup.py... ${RED}Failed.${NC}"
+        echo -e "\r${PACKAGE_NAME} Installer: Running setup.py... ${RED}Failed.${NC}"
         exit 1
     fi
 elif [[ ${ARG} == "-u" ]]; then
-    echo -e "Attempting to uninstall ${PACKAGE_NAME}"
+    echo -e "${PACKAGE_NAME} Installer: Attempting to uninstall ${PACKAGE_NAME}"
     if [[ -e ${INSTALL_FILES} ]]; then
-        echo -n "Found egg files. Deleting... "
+        echo -ne "${PACKAGE_NAME} Installer: Found egg files. Deleting... "
         xargs rm <${INSTALL_FILES}
-        echo -e "\rFound egg files. Deleting... ${GREEN}Done!${NC}"
+        echo -e "\r${PACKAGE_NAME} Installer: Found egg files. Deleting... ${GREEN}Done!${NC}"
     else
-        echo "Couldn't find the files to remove"
-        echo "Did you install with this script, or did you run uninstall without installing first?"
+        echo -e "${PACKAGE_NAME} Installer: Couldn't find the files to remove"
+        echo -e "${PACKAGE_NAME} Installer: Did you install with this script, or did you run uninstall without installing first?"
     fi
 fi
 
