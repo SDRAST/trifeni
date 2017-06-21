@@ -18,7 +18,7 @@ function checkVirutalEnv {
             exit 0
         fi
     else
-        echo -e "Installing ${PACKAGE_NAME} inside a Virtual Environment: ${VIRTUAL_ENV}"
+        echo -e "Installing ${PACKAGE_NAME} inside a Virtual Environment: ${BLUE}${VIRTUAL_ENV}${NC}"
     fi
 }
 
