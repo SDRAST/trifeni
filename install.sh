@@ -45,7 +45,7 @@ if [[ ${ARG} == "-i" ]]; then
         exit 1
     fi
 elif [[ ${ARG} == "-u" ]]; then
-    echo "Attempting to uninstall ${PACKAGE_NAME}"
+    echo -e "Attempting to uninstall ${PACKAGE_NAME}"
     if [[ -e ${INSTALL_FILES} ]]; then
         echo -n "Found egg files. Deleting... "
         xargs rm <${INSTALL_FILES}
