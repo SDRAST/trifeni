@@ -9,8 +9,8 @@ PACKAGE_NAME="${BLUE}${PACKAGE}${NC}"
 INSTALLER_NAME="${WHITE}${PACKAGE} Installer: ${NC}"
 
 INSTALL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-INSTALL_FILES="${INSTALL_DIR}/install_files_${PACKAGE_NAME}.txt"
-INSTALL_LOG="${INSTALL_DIR}/install_log_${PACKAGE_NAME}.log"
+INSTALL_FILES="${INSTALL_DIR}/install_files_${PACKAGE}.txt"
+INSTALL_LOG="${INSTALL_DIR}/install_log_${PACKAGE}.log"
 
 function checkVirutalEnv {
     if [[ ${VIRTUAL_ENV} == "" ]]; then
