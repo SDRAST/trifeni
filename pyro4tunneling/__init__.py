@@ -6,6 +6,8 @@ Author Dean Shaff
 from __future__ import print_function
 import logging
 
+__version__ = "1.1.0"
+
 logging.basicConfig(level=logging.DEBUG)
 module_logger = logging.getLogger("tunneling")
 
