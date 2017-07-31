@@ -57,7 +57,7 @@ class Pyro4Tunnel(object):
         else:
             return Pyro4.locateNS(self.ns_host, self.ns_port)
 
-    def register_remote_daemon(self, daemon):
+    def register_remote_daemon(self, daemon, reverse=True):
         """
         Args:
             daemon (Pyro4.Daemon):
@@ -65,12 +65,12 @@ class Pyro4Tunnel(object):
             bool: Whether or not the connection was already there.
         """
         if self.local:
-            return None
+            return True
         else:
             daemon_host, daemon_port = daemon.locationStr.split(":")
             proc_daemon, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, daemon_port,
                                            daemon_port, username=self.remote_username,
-                                           port=self.remote_port, reverse=True)
+                                           port=self.remote_port, reverse=reverse)
             self.processes.append(proc_daemon)
             return existing
 
