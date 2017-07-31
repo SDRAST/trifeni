@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name = "pyro4tunneling",
-    version = "0.1.0",
+    version = "1.1.1.2",
     author = "Dean Shaff",
     author_email = "dean.shaff@gmail.com",
     description = ("Access Pyro objects that are located on arbitrary remote machines"),
