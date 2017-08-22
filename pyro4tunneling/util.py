@@ -6,10 +6,9 @@ import signal
 import shlex
 import subprocess
 
-from . import module_logger
 from .configuration import config
 
-util_logger = logging.getLogger(module_logger.name+".util")
+module_logger = logging.getLogger(__name__)
 
 class Process(object):
     """
@@ -160,7 +159,7 @@ def arbitrary_tunnel(remote_ip, relay_ip,
             or else Process instance, the corresponds to already running tunnel command.
 
     """
-    util_logger.debug("Configuration: {}".format(config.hosts))
+    module_logger.debug("Configuration: {}".format(config.hosts))
     # Regular or reverse tunnel?
     if reverse:
         tag = "-R"
@@ -196,4 +195,3 @@ def arbitrary_tunnel(remote_ip, relay_ip,
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     # kill_processes('ssh', '-L')
-

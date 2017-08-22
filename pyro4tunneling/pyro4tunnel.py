@@ -3,7 +3,8 @@ import Pyro4
 
 from .util import arbitrary_tunnel, check_connection
 from .autoreconnectingproxy import AutoReconnectingProxy
-from . import module_logger
+
+module_logger = logging.getLogger(__name__)
 
 class TunnelError(Pyro4.errors.CommunicationError):
     pass
@@ -106,6 +107,21 @@ class Pyro4Tunnel(object):
                 exc = TunnelError("Failed to find remote object on remote nameserver.")
                 exc.details = {'remote_server_name':self.remote_server_name}
                 raise exc
+
+    def cleanup(self):
+        """
+        Remove any existing SSH connections.
+        """
+        for proc in self.processes:
+            try:
+                self.logger.debug("Attempting to kill process {}".format(proc))
+                proc.kill()
+                self.logger.debug("Successfully killed process {}".format(proc))
+            except Exception as err:
+                self.logger.error("""Couldn't kill process {} due to {}.
+                                    If you don't want this connection to persist, you'll have to kill manually""".format(
+                                        proc, err
+                                    ))
 
 if __name__ == '__main__':
     pass

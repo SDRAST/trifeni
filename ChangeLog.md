@@ -9,3 +9,8 @@ act like a thin layer over `Pyro4.Proxy`
 
 - Added version information, stored in `pyro4tunneling.__version__`
 - Added `TunnelError` to "exports" in `pyro4tunneling/__init__.py`.
+
+### Version 1.2.0
+
+- Added a `pyro4tunneling.Pyro4Tunnel.cleanup` method that will kill all SSH tunnels
+associated with the object.

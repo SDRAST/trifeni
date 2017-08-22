@@ -31,9 +31,9 @@ me@local: python
 
 #### Configuration
 
-Let's say that you get tired of writing in the ssh details for a remote machine. `pyro4tunneling` has a few ways of 
+Let's say that you get tired of writing in the ssh details for a remote machine. `pyro4tunneling` has a few ways of
 dealing with this. The first is to add the remote server details to your `~/.ssh/config` file.
-This requires no further configuration; `pyro4tunneling` automatically looks in this file to extract ssh configuration information. 
+This requires no further configuration; `pyro4tunneling` automatically looks in this file to extract ssh configuration information.
 
 You can also provide dictionary or JSON file configurations. A dictionary configuration looks like the following:
 
@@ -60,9 +60,8 @@ proxy = tunnel.get_remote_object("BasicServer")
 ```
 
 ```json
-// pyro4tunneling.json. Note that most parsers won't read comments. 
+// pyro4tunneling.json. Note that most parsers won't read comments.
 {"remote":["hostname", "username", 22]}
 ```
 
 See the examples directory for more information.
-
