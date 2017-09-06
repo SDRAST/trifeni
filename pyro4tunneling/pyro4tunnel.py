@@ -19,9 +19,13 @@ class Pyro4Tunnel(object):
                 ns_host="localhost",
                 ns_port="9090",
                 local_forwarding_port=None,
-                local=False):
-
-        self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
+                local=False,
+                logger=None):
+                
+        if not logger:
+            self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
+        else:
+            self.logger = logger
         self.remote_server_name = remote_server_name
         self.relay_ip = relay_ip
         self.remote_port = remote_port

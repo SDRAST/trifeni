@@ -14,3 +14,7 @@ act like a thin layer over `Pyro4.Proxy`
 
 - Added a `pyro4tunneling.Pyro4Tunnel.cleanup` method that will kill all SSH tunnels
 associated with the object.
+
+### Version 1.2.1
+
+- Fixed bug where pyro4tunneling needs ~/.ssh/config to exist.

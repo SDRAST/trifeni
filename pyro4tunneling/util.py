@@ -105,7 +105,7 @@ def kill_processes(search_term, match_template=None):
             bp = Process(ps_line=proc, command_name=search_term)
             bp.kill()
 
-def check_connection(callback, timeout=1.0, attempts=10, args=(), kwargs={}):
+def check_connection(callback, timeout=1.0, attempts=10, args=None, kwargs=None):
     """
     Check to see if a connection is viable, by running a callback.
     Args:
@@ -119,6 +119,8 @@ def check_connection(callback, timeout=1.0, attempts=10, args=(), kwargs={}):
     Returns:
         bool: True if the connection was successful, False if not successful.
     """
+    if not kwargs: kwargs = {}
+    if not args: args = ()
     attempt_i = 0
     while attempt_i < attempts:
         try:

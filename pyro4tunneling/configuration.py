@@ -24,12 +24,15 @@ class Configuration(object):
             None: Updates self.hosts
         """
         ssh_config_path = os.path.join(os.path.expanduser("~"), ".ssh/config")
-        with open(ssh_config_path, 'r') as f_config:
-            ssh_config = f_config.read()
-        pattern = re.compile("host (.*)\n")
-        hosts = {match:[] for match in re.findall(pattern, ssh_config)}
-        config_logger.debug("ssh_default_configure: Hosts: {}".format(hosts))
-        self.hosts.update(hosts)
+        if os.path.exists(ssh_config_path):
+            with open(ssh_config_path, 'r') as f_config:
+                ssh_config = f_config.read()
+            pattern = re.compile("host (.*)\n")
+            hosts = {match:[] for match in re.findall(pattern, ssh_config)}
+            config_logger.debug("ssh_default_configure: Hosts: {}".format(hosts))
+            self.hosts.update(hosts)
+        else:
+            config_logger.debug("ssh_default_configure: No ~/.ssh/config file found.")
 
     def ssh_configure(self, config):
         """
