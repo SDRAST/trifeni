@@ -11,4 +11,4 @@ __version__ = "1.2.1.1"
 module_logger = logging.getLogger(__name__)
 
 from .configuration import config
-from .pyro4tunnel import Pyro4Tunnel, TunnelError
+from .pyro4tunnel import *

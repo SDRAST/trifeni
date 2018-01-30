@@ -55,7 +55,7 @@ class Process(object):
         os.kill(self.pid, signal.SIGKILL)
 
 
-def invoke_cmd(command):
+def invoke_cmd(command, command_input=None):
     """
     Create a subprocess.Popen instance corresponding to a bash command.
     Args:
@@ -65,7 +65,31 @@ def invoke_cmd(command):
 
     module_logger.debug("invoke: argument list is %s", str(args))
 
-    proc = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(args, shell=False,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    # proc = subprocess.Popen(args, shell=False,
+    #                         stdout=subprocess.PIPE,
+    #                         stderr=subprocess.PIPE,
+    #                         stdin=subprocess.PIPE)
+
+    proc.stdin.write(command_input)
+    proc.stdin.flush()
+    stdout, stderr = proc.communicate()
+    print(stdout, stderr)
+    # waiting = True
+    # while waiting:
+    #     try:
+    #         proc.stdin.write(command_input)
+    #         print("here")
+    #         output = proc.stdout.readlines()
+    #         print("here")
+    #         # if command_input is not None:
+    #         #     proc.stdin.write(command_input)
+    #         #     proc.stdin.flush()
+    #         waiting = False
+    #     except IOError:
+    #         continue
 
     return proc
 
@@ -137,7 +161,7 @@ def check_connection(callback, timeout=1.0, attempts=10, args=None, kwargs=None)
 
 def arbitrary_tunnel(remote_ip, relay_ip,
                      local_port, remote_port,
-                     port=22, username='',reverse=False):
+                     port=22, username='',reverse=False, password=None):
     """
     Create an arbitrary ssh tunnel, after checking to see if a tunnel already exists.
     This just spawns the process that creates the tunnel, it doesn't check to see if the tunnel
@@ -191,7 +215,7 @@ def arbitrary_tunnel(remote_ip, relay_ip,
             module_logger.debug("Found matching process: {}, pid: {}".format(bp.name,bp.pid))
             return (bp, True)
     module_logger.debug("Invoking command {}".format(command))
-    p = invoke_cmd(command)
+    p = invoke_cmd(command,command_input=password)
     return (p, False)
 
 if __name__ == '__main__':

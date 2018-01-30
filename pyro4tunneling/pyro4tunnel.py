@@ -4,32 +4,79 @@ import Pyro4
 from .util import arbitrary_tunnel, check_connection
 from .autoreconnectingproxy import AutoReconnectingProxy
 
+__all__ = ["TunnelError", "Tunnel", "DaemonTunnel", "NameServerTunnel"]
+
 module_logger = logging.getLogger(__name__)
 
 class TunnelError(Pyro4.errors.CommunicationError):
     pass
 
-class Pyro4Tunnel(object):
-
-    def __init__(self,
-                remote_server_name='localhost',
-                relay_ip='localhost',
-                remote_port=22,
-                remote_username="",
-                ns_host="localhost",
-                ns_port=9090,
-                local_forwarding_port=None,
-                local=False,
-                logger=None):
-
+class Tunnel(object):
+    """
+    A generic tunneling class. This allows for creation and maintenance of
+    arbitrary tunnels.
+    """
+    def __init__(self,  remote_server_name='localhost',
+                        relay_ip='localhost',
+                        remote_port=22,
+                        remote_username="",
+                        logger=None):
         if not logger:
-            self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
+            self.logger = logging.getLogger(module_logger.name + self.__class__.__name__)
         else:
             self.logger = logger
         self.remote_server_name = remote_server_name
         self.relay_ip = relay_ip
         self.remote_port = remote_port
         self.remote_username = remote_username
+        self.processes = []
+
+    def create_tunnel(self, forwarding_port, target_port, reverse=False):
+        proc, existing = arbitrary_tunnel(
+            self.remote_server_name, self.relay_ip, forwarding_port, target_port,
+            port=self.remote_port, username=self.remote_username, reverse=reverse
+        )
+        self.processes.append(proc)
+        return proc, existing
+
+    def cleanup(self):
+        """
+        Remove any existing SSH connections.
+        """
+        for proc in self.processes:
+            try:
+                self.logger.debug("Attempting to kill process {}".format(proc))
+                proc.kill()
+                self.logger.debug("Successfully killed process {}".format(proc))
+            except Exception as err:
+                self.logger.error("""Couldn't kill process {} due to {}.
+                                    If you don't want this connection to persist, you'll have to kill manually""".format(
+                                        proc, err
+                                    ))
+
+class DaemonTunnel(Tunnel):
+    """
+    A tunnel that doesn't bother with finding nameservers.
+    """
+    def create_daemon_tunnel(self, daemon, reverse=True):
+        host, port = daemon.locationStr.split(":")
+        if not self.local:
+            proc, existing = self.create_tunnel(port, port)
+        else:
+            existing = True
+        return existing
+
+class NameServerTunnel(Tunnel):
+    """
+    Create a tunnel to the remote nameserver
+    """
+    def __init__(self,
+                ns_host="localhost",
+                ns_port=9090,
+                local_forwarding_port=None,
+                local=False, **kwargs):
+
+        super(NameServerTunnel, self).__init__(**kwargs)
         self.ns_host = ns_host
         self.ns_port = ns_port
         self.local_forwarding_port = local_forwarding_port
@@ -45,12 +92,17 @@ class Pyro4Tunnel(object):
         Returns:
             Pyro4.naming.NameServer
         """
-        self.logger.info("Attempting to find remote nameserver. Remote IP: {}, NS port: {}".format(self.remote_server_name, self.ns_port))
+        self.logger.info(
+            "Attempting to find remote nameserver. Remote IP: {}, NS port: {}".format(
+                self.remote_server_name, self.ns_port
+            )
+        )
         # First we create ssh tunnel to remote ip.
         if not self.local:
-            proc, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, self.local_forwarding_port, self.ns_port,
-                             port=self.remote_port, username=self.remote_username)
-            self.processes.append(proc)
+            proc, existing = self.create_tunnel(self.local_forwarding_port, self.ns_port)
+            # proc, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, self.local_forwarding_port, self.ns_port,
+            #                  port=self.remote_port, username=self.remote_username)
+            # self.processes.append(proc)
             # now we check the connection to see if its running.
             if check_connection(Pyro4.locateNS, args=(self.ns_host, self.ns_port)):
                 return Pyro4.locateNS(self.ns_host, self.ns_port)
@@ -64,6 +116,9 @@ class Pyro4Tunnel(object):
 
     def register_remote_daemon(self, daemon, reverse=True):
         """
+        Register a remote daemon with the NameServerObject. This creates a
+        tunnel to the daemon object. Note that in "local" mode there
+        is no reason to
         Args:
             daemon (Pyro4.Daemon):
         Returns:
@@ -73,10 +128,11 @@ class Pyro4Tunnel(object):
             return True
         else:
             daemon_host, daemon_port = daemon.locationStr.split(":")
-            proc_daemon, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, daemon_port,
-                                           daemon_port, username=self.remote_username,
-                                           port=self.remote_port, reverse=reverse)
-            self.processes.append(proc_daemon)
+            proc, existing = self.create_tunnel(daemon_port, daemon_port, reverse=reverse)
+            # proc_daemon, existing = arbitrary_tunnel(self.remote_server_name, self.relay_ip, daemon_port,
+            #                                daemon_port, username=self.remote_username,
+            #                                port=self.remote_port, reverse=reverse)
+            # self.processes.append(proc_daemon)
             return existing
 
     def get_remote_object(self, remote_obj_name, remote_obj_port=None, remote_obj_id=None, auto=False):
@@ -126,47 +182,6 @@ class Pyro4Tunnel(object):
                                     If you don't want this connection to persist, you'll have to kill manually""".format(
                                         proc, err
                                     ))
-
-class Pyro4DaemonTunnel(Pyro4Tunnel):
-    """
-    A tunnel that doesn't bother with finding nameservers.
-    """
-    def __init__(self,
-                remote_server_name="localhost",
-                relay_ip='localhost',
-                remote_port=22,
-                remote_username="",
-                object_id=None,
-                object_port=0,
-                local_forwarding_port=None,
-                local=False,
-                logger=None):
-        """
-
-        """
-        self.remote_server_name = remote_server_name
-        self.relay_ip = relay_ip
-        self.remote_port = remote_port
-        self.remote_username = remote_username
-        self.local = local
-
-        if object_port == 0:
-            # Pyro4 would do this automatically, but we have to force it
-            # so we can get that local_forwarding_port
-            object_port = Pyro4.socketutil.findProbablyUnusedPort()
-        if local_forwarding_port is None:
-            local_forwarding_port = object_port
-        self.object_port = object_port
-        self.local_forwarding_port = local_forwarding_port
-        self.processes = []
-        if not logger:
-            self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
-        else:
-            self.logger = logger
-
-    def get_remote_object(self, *args, **kwargs):
-        raise TunnelError("get_remote_object method can't work with Daemon Tunnel")
-
 
 
 if __name__ == '__main__':
