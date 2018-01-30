@@ -17,11 +17,11 @@ class Pyro4Tunnel(object):
                 remote_port=22,
                 remote_username="",
                 ns_host="localhost",
-                ns_port="9090",
+                ns_port=9090,
                 local_forwarding_port=None,
                 local=False,
                 logger=None):
-                
+
         if not logger:
             self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
         else:
@@ -126,6 +126,48 @@ class Pyro4Tunnel(object):
                                     If you don't want this connection to persist, you'll have to kill manually""".format(
                                         proc, err
                                     ))
+
+class Pyro4DaemonTunnel(Pyro4Tunnel):
+    """
+    A tunnel that doesn't bother with finding nameservers.
+    """
+    def __init__(self,
+                remote_server_name="localhost",
+                relay_ip='localhost',
+                remote_port=22,
+                remote_username="",
+                object_id=None,
+                object_port=0,
+                local_forwarding_port=None,
+                local=False,
+                logger=None):
+        """
+
+        """
+        self.remote_server_name = remote_server_name
+        self.relay_ip = relay_ip
+        self.remote_port = remote_port
+        self.remote_username = remote_username
+        self.local = local
+
+        if object_port == 0:
+            # Pyro4 would do this automatically, but we have to force it
+            # so we can get that local_forwarding_port
+            object_port = Pyro4.socketutil.findProbablyUnusedPort()
+        if local_forwarding_port is None:
+            local_forwarding_port = object_port
+        self.object_port = object_port
+        self.local_forwarding_port = local_forwarding_port
+        self.processes = []
+        if not logger:
+            self.logger = logging.getLogger(module_logger.name +".Pyro4Tunnel")
+        else:
+            self.logger = logger
+
+    def get_remote_object(self, *args, **kwargs):
+        raise TunnelError("get_remote_object method can't work with Daemon Tunnel")
+
+
 
 if __name__ == '__main__':
     pass
