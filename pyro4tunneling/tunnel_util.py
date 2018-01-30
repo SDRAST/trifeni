@@ -58,7 +58,7 @@ class ForwardHandler(SocketServer.BaseRequestHandler):
         self.request.close()
         module_logger.debug("Handler.handler: Tunnel closed from {}".format(peername))
 
-def reverser_handler(chan, host, port):
+def reverse_handler(chan, host, port):
     sock = socket.socket()
     try:
         sock.connect((host, port))
@@ -103,8 +103,10 @@ class Tunnel(object):
 
 class TunnelManager(object):
 
-    def __init__(self):
+    def __init__(self, logger=None):
         self.tunnels = {}
+        if logger is None: logger = logging.getLogger(module_logger.name + ".TunnelManager")
+        self.logger = logger
 
     def create_tunnel(self,
                     remote_ip, relay_ip,
@@ -145,14 +147,15 @@ class TunnelManager(object):
             return
 
         transport = client.get_transport()
-        def forward_tunnel(self):
+
+        def forward_tunnel():
             class SubHander(ForwardHandler):
                 chain_host = relay_ip
                 chain_port = remote_port
                 ssh_transport = transport
             ForwardServer(("", local_port), SubHander).serve_forever()
 
-        def reverse_tunnel(self):
+        def reverse_tunnel():
             transport.request_port_forward("", local_port)
             while True:
                 chan = transport.accept(1000)
@@ -166,9 +169,15 @@ class TunnelManager(object):
             tunnel_thread = threading.Thread(target=reverse_tunnel)
         else:
             tunnel_thread = threading.Thread(target=forward_tunnel)
-
         tunnel_thread.daemon = True
         tunnel_thread.start()
         tunnel = Tunnel(remote_ip,relay_ip,local_port,remote_port,port,username,tunnel_id,tunnel_thread)
         self.tunnels[tunnel_id] = tunnel
         return tunnel
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    tm = TunnelManager()
+    t = tm.create_tunnel()
+    while True:
+        pass
