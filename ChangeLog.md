@@ -18,3 +18,14 @@ associated with the object.
 ### Version 1.2.1
 
 - Fixed bug where pyro4tunneling needs ~/.ssh/config to exist.
+
+### Version 2.0.0
+
+- Complete backend and API overhaul, to the point where I considered just
+starting a new project.
+- Backend changes:
+    - Now using `paramiko` instead of `subprocess.Popen` to create tunnels.
+- API changes:
+    - Pyro4Tunnel -> NameServerTunnel
+    - Addition of DaemonTunnel that allows for creating tunnels to a Pyro Daemon
+        given only a uri.
