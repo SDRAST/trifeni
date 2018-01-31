@@ -26,7 +26,5 @@ class TestDaemonTunnel(create_tunnel_test()):
         p = dt.get_remote_object(uri)
         self.assertTrue(p.square(2) == 4)
 
-
-
 if __name__ == "__main__":
     unittest.main()
