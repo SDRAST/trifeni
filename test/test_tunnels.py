@@ -1,26 +1,32 @@
 import unittest
 
-from pyro4tunneling.pyro4tunnel import Tunnel, NameServerTunnel, DaemonTunnel
+import Pyro4
+
+from trifeni.pyro4tunnel import NameServerTunnel, DaemonTunnel
 from . import create_tunnel_test
 
-class TestTunnel(create_tunnel_test()):
-
-    def test_create_tunnel(self):
-        tunnel = Tunnel(remote_server_name="me")
-        proc, existing = tunnel.create_tunnel(9091, 9090)
-
-    def test_clean_up(self):
-        pass
-
-@unittest.skip("")
 class TestNameServerTunnnel(create_tunnel_test()):
-
     pass
 
-@unittest.skip("")
 class TestDaemonTunnel(create_tunnel_test()):
 
-    pass
+    def test_init(self):
+        pass
+
+    # @unittest.skip("")
+    def test_get_remote_object(self):
+        uri = "PYRO:TestServer@localhost:50001"
+        dt = DaemonTunnel(remote_server_name="me")
+        p = dt.get_remote_object(uri, remote_port=50000)
+        self.assertTrue(p.square(2) == 4)
+
+    def test_get_remote_object_local(self):
+        uri = "PYRO:TestServer@localhost:50000"
+        dt = DaemonTunnel(remote_server_name="me",local=True)
+        p = dt.get_remote_object(uri)
+        self.assertTrue(p.square(2) == 4)
+
+
 
 if __name__ == "__main__":
     unittest.main()

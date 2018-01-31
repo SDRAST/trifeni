@@ -1,19 +1,21 @@
+import logging
 import unittest
 import threading
-try:
-    import SocketServer
-except ImportError:
-    import socketserver as SocketServer # python3
 
-class Server(SocketServer.ThreadingTCPServer):
-    daemon_threads = True
-    allow_reuse_address = True
+import Pyro4
+import Pyro4.naming
 
-class Handler(SocketServer.BaseRequestHandler):
+from trifeni.util import check_connection
 
-    def handle(self):
-        self.data = self.request.recv(1024).strip()
-        print(self.data)
+module_logger = logging.getLogger(__name__)
+
+@Pyro4.expose
+class TestServer(object):
+    def square(self, x):
+        return x**2
+    def repeat(self, sequence, times,delimiter=" "):
+        repeated = delimiter.join([sequence for i in range(int(times))])
+        return repeated
 
 def create_tunnel_test():
 
@@ -21,10 +23,23 @@ def create_tunnel_test():
 
         @classmethod
         def setUpClass(cls):
-            host, port = "localhost", 9090
-            server = Server((host,port),Handler)
-            server_thread = threading.Thread(target=server.serve_forever)
-            server_thread.daemon = True
-            server_thread.start()
+            server, host, ns_port, obj_port = TestServer(), "localhost", 9090, 50000
+            ns_uri, ns_daemon, ns_server = Pyro4.naming.startNS(port=ns_port)
+            ns_thread = threading.Thread(target=ns_daemon.requestLoop)
+            ns_thread.daemon = True
+            ns_thread.start()
+
+            with Pyro4.locateNS() as ns:
+                daemon = Pyro4.Daemon(port=obj_port)
+                uri = daemon.register(server, objectId=server.__class__.__name__)
+                ns.register(server.__class__.__name__, uri)
+                daemon_thread = threading.Thread(target=daemon.requestLoop)
+                daemon_thread.daemon = True
+                daemon_thread.start()
+
+            cls.server = server
+            cls.host = host
+            cls.ns_port = ns_port
+            cls.obj_port = obj_port
 
     return BaseTest

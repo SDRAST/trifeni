@@ -3,7 +3,7 @@ import time
 import unittest
 import sys
 
-from pyro4tunneling import util, config
+from trifeni import util, config
 
 module_logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class TestUtil(unittest.TestCase):
     def test_create_tunnel(self):
 
         tm = util.SSHTunnelManager()
-        t = tm.create_tunnel("riselka","localhost",9091,9090,reverse=True)
+        t = tm.create_tunnel("me","localhost",9091,9090,reverse=False)
         module_logger.debug("test_create_tunnel: tunnel {}".format(t))
         time.sleep(2.0)
 

@@ -31,15 +31,15 @@ class Pyro4Tunnel(SSHTunnelManager):
         self.create_tunnel_kwargs = create_tunnel_kwargs
 
     def create_tunnel(self, local_port, remote_port, reverse=False):
-        return super(NameServerTunnel, self).create_tunnel(
+        return super(Pyro4Tunnel, self).create_tunnel(
             self.remote_server_name, self.relay_ip, local_port, remote_port,
-            port=self.remote_port, username=remote_username,reverse=reverse,**self.create_tunnel_kwargs)
+            port=self.remote_port, username=self.remote_username,reverse=reverse,**self.create_tunnel_kwargs)
 
 class DaemonTunnel(Pyro4Tunnel):
     """
     Find a daemon on the remote without a nameserver connection.
     """
-    def get_remote_object(self, uri, proxy_class=None, reverse=False):
+    def get_remote_object(self, uri, remote_port=None, proxy_class=None, reverse=False):
         """
         Given some Pyro URI, create connection to a Daemon sitting on a remote server.
         """
@@ -48,7 +48,9 @@ class DaemonTunnel(Pyro4Tunnel):
         if not self.local:
             uri = Pyro4.core.URI(uri)
             obj_host, obj_port = uri.location.split(":")
-            self.create_tunnel(obj_port, obj_port, reverse=reverse)
+            if remote_port is None:
+                remote_port = obj_port
+            self.create_tunnel(int(obj_port), int(remote_port), reverse=reverse)
         return proxy_class(uri)
 
 class NameServerTunnel(Pyro4Tunnel):
@@ -61,7 +63,7 @@ class NameServerTunnel(Pyro4Tunnel):
 
         super(NameServerTunnel, self).__init__(**kwargs)
         self.ns_host = ns_host
-        self.ns_port = ns_port
+        self.ns_port = int(ns_port)
         self.ns = self.find_nameserver()
 
     def find_nameserver(self):
@@ -103,7 +105,7 @@ class NameServerTunnel(Pyro4Tunnel):
             daemon_host, daemon_port = daemon.locationStr.split(":")
             self.create_tunnel(daemon_port, daemon_port, reverse=reverse, **self.create_tunnel_kwargs)
 
-    def get_remote_object(self, remote_obj_name, remote_obj_port=None, remote_obj_id=None, proxy_class=None):
+    def get_remote_object(self, remote_obj_name, proxy_class=None):
         """
         Grab an object registered on the remote nameserver.
         Args:
@@ -118,7 +120,7 @@ class NameServerTunnel(Pyro4Tunnel):
             return proxy_class(obj_uri)
         else:
             obj_host, obj_port = obj_uri.location.split(":")
-            self.create_tunnel(obj_port, obj_port, **self.create_tunnel_kwargs)
+            self.create_tunnel(int(obj_port), int(obj_port), **self.create_tunnel_kwargs)
             return proxy_class(obj_uri)
 
 if __name__ == '__main__':
