@@ -27,12 +27,6 @@ class Pyro4Tunnel(SSHTunnelManager):
         if not create_tunnel_kwargs: create_tunnel_kwargs = {}
         self.create_tunnel_kwargs = create_tunnel_kwargs
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cleanup()
-
     def create_tunnel(self, local_port, remote_port, reverse=False):
         return super(Pyro4Tunnel, self).create_tunnel(
             self.remote_server_name, self.relay_ip, local_port, remote_port,

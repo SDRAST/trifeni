@@ -19,9 +19,7 @@ class TestNameServerTunnnel(create_tunnel_test()):
                                         ns_port=9090, local=True)
 
     def tearDown(self):
-        module_logger.info("tearDown: {}".format([self.ns_tunnel.tunnels[t].open for t in self.ns_tunnel.tunnels]))
         self.ns_tunnel.cleanup()
-        module_logger.info("tearDown: {}".format([self.ns_tunnel.tunnels[t].open for t in self.ns_tunnel.tunnels]))
         self.ns_tunnel_local.cleanup()
 
     # @unittest.skip("")
