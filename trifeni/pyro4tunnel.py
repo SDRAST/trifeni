@@ -1,12 +1,9 @@
 import logging
 import Pyro4
 
-# from .util import arbitrary_tunnel, check_connection
-from .autoreconnectingproxy import AutoReconnectingProxy
-
 from .util import SSHTunnelManager
 
-__all__ = ["TunnelError", "NameServerTunnel"]
+__all__ = ["TunnelError", "Pyro4Tunnel", "DaemonTunnel", "NameServerTunnel"]
 
 module_logger = logging.getLogger(__name__)
 
