@@ -20,7 +20,8 @@ from ..configuration import config
 
 __all__ = [
     "SSHTunnel",
-    "SSHTunnelManager"
+    "SSHTunnelManager",
+    "test_port"
 ]
 
 module_logger = logging.getLogger(__name__)
@@ -161,7 +162,26 @@ class SSHTunnel(object):
                 keyfile=None,look_for_keys=False,
                 wait_for_password=False,reverse=False,
                 tunnel_id=None, logger=None):
-
+        """
+        If argument/keyword argument descriptions aren't specified, see
+        description of Instance Attributes.
+        Args:
+            remote_ip (str): This can either be an actual server address, or
+                the name of a SSH alias defined in trifeni.config (these
+                normally come from a SSH config file in "~/.ssh/config")
+            relay_ip (str)
+            local_port (int)
+            remote_port (int)
+        Keyword Args:
+            port (int): (22)
+            username (str): (None)
+            keyfile (str): (None)
+            look_for_keys (bool): Passed to self.connect (False)
+            wait_for_password (bool):  Passed to self.connect (False)
+            reverse (bool): (False)
+            tunnel_id (str): (None)
+            logger (logging.getLogger): (None)
+        """
         if logger is None: logger = logging.getLogger(module_logger.name+".SSHTunnel")
         self.logger = logger
 
@@ -250,8 +270,6 @@ class SSHTunnel(object):
                 ssh_transport = transport
             def server_factory():
                 return ForwardServer(("", self.local_port), SubHander)
-            # if not check_connection(server_factory):
-            #     raise RuntimeError("Couldn't create tunnel")
             return server_factory()
 
         def reverse_tunnel():
@@ -274,15 +292,15 @@ class SSHTunnel(object):
         self.open = True
 
     def destroy(self):
-        module_logger.debug("SSHTunnel.destroy: {} called".format(self.tunnel_id))
+        """Destroy the tunnel."""
+        module_logger.debug("destroy: {} called".format(self.tunnel_id))
         if self.client is not None:
-            module_logger.debug("SSHTunnel.destroy calling self.client.close")
+            module_logger.debug("destroy calling self.client.close")
             self.client.close()
         if self.server is not None:
-            module_logger.debug("SSHTunnel.destroy calling self.server.shutdown")
+            module_logger.debug("destroy calling self.server.shutdown")
             self.server.shutdown()
-            self.server.server_close()
-            # self.server.close()
+            self.server.server_close() # this is necessary to completely unbind the server.
         self.tunnel_thread.join()
         self.open = False
 
@@ -294,7 +312,13 @@ class SSHTunnel(object):
 
 class SSHTunnelManager(object):
     """
-    Create and manage SSH tunnel connections.
+    Create and manage SSH tunnel connections. The SSHTunnel.connect method
+    does not attempt to prevent tunnel collisions, ie tunnels trying to bind
+    on the same ports. When creating tunnels on the command line, the ssh cli
+    will simply not do the port forwarding/reversing, instead just logging the
+    user into the remote server. With the paramiko/socket server approach,
+    the socket server will throw an error if attempting to bind on an address
+    that is being used.
     """
     def __init__(self, logger=None):
         self.tunnels = {}
@@ -304,9 +328,23 @@ class SSHTunnelManager(object):
         self.logger = logger
 
     def create_tunnel(self, remote_ip, relay_ip, local_port, remote_port, **kwargs):
-        """Create an instance of SSHTunnel and add it to the tunnels attribute"""
-        tunnel = SSHTunnel(remote_ip, relay_ip, local_port, remote_port, **kwargs)
-        self.tunnels[tunnel.tunnel_id] = tunnel
+        """Create an instance of SSHTunnel and add it to the tunnels attribute
+        and attempt to detect whether there will be collisions.
+
+        In principle we could get away with not checking the tunnels associated
+        with this manager, but I think it results in errors that are easier to
+        understand/handle, versus a random socket error.
+        """
+        local_ports = [(self.tunnels[_id].relay_ip, self.tunnels[_id].local_port) for _id in self.tunnels]
+        if (relay_ip, local_port) in local_ports:
+            raise RuntimeError(
+                ("This tunnel manager is already responsible "
+                 "for a tunnel bound to {}:{}").format(relay_ip, local_port))
+        if not test_port(local_port, host=relay_ip):
+            tunnel = SSHTunnel(remote_ip, relay_ip, local_port, remote_port, **kwargs)
+            self.tunnels[tunnel.tunnel_id] = tunnel
+        else:
+            raise RuntimeError("Can't bind to {}:{}".format(relay_ip, local_port))
 
     def destroy_tunnel(self, _id):
         """
@@ -341,3 +379,21 @@ class SSHTunnelManager(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
+
+def test_port(port, host="localhost"):
+    """
+    Determine if a port is already being used.
+    Args:
+        port (int): The port to check
+    Keyword Args:
+        host (str): The host to attempt to bind on ("localhost")
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((host, port))
+    except socket.error as err:
+        if err.errno == 98:
+            return True
+        else:
+            raise err
+    return False
