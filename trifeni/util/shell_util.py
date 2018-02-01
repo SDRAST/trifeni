@@ -132,8 +132,8 @@ def check_connection(callback, timeout=1.0, attempts=10, args=None, kwargs=None)
             callback(*args, **kwargs)
             module_logger.debug("Successfully connected.")
             return True
-        except Exception as e:
-            module_logger.debug("Connection failed: {}. Timing out".format(e))
+        except Exception as err:
+            module_logger.debug("Connection failed: {}. Timing out".format(err))
             time.sleep(timeout)
             attempt_i += 1
     module_logger.error("Connection failed completely.")

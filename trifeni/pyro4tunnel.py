@@ -27,6 +27,12 @@ class Pyro4Tunnel(SSHTunnelManager):
         if not create_tunnel_kwargs: create_tunnel_kwargs = {}
         self.create_tunnel_kwargs = create_tunnel_kwargs
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
     def create_tunnel(self, local_port, remote_port, reverse=False):
         return super(Pyro4Tunnel, self).create_tunnel(
             self.remote_server_name, self.relay_ip, local_port, remote_port,
@@ -60,7 +66,7 @@ class DaemonTunnel(Pyro4Tunnel):
 
 class NameServerTunnel(Pyro4Tunnel):
     """
-    Create a tunnel to the remote nameserver
+    Create a tunnel to the remote nameserver.
     """
     def __init__(self, ns_host="localhost",
                        ns_port=9090,
@@ -129,7 +135,7 @@ class NameServerTunnel(Pyro4Tunnel):
             daemon_host, daemon_port = daemon.locationStr.split(":")
             self.create_tunnel(daemon_port, daemon_port, reverse=reverse, **self.create_tunnel_kwargs)
 
-    def get_remote_object(self, remote_obj_name, proxy_class=None):
+    def get_remote_object(self, remote_obj_name, local_obj_port=None, proxy_class=None):
         """
         Grab an object registered on the remote nameserver.
         Args:
@@ -144,8 +150,15 @@ class NameServerTunnel(Pyro4Tunnel):
             return proxy_class(obj_uri)
         else:
             obj_host, obj_port = obj_uri.location.split(":")
-            self.create_tunnel(int(obj_port), int(obj_port), **self.create_tunnel_kwargs)
+            if not local_obj_port:
+                local_obj_port = int(obj_port)
+            self.create_tunnel(local_obj_port, int(obj_port), **self.create_tunnel_kwargs)
             return proxy_class(obj_uri)
+
+    def cleanup(self):
+        if self.ns is not None:
+            self.ns._pyroRelease()
+        super(NameServerTunnel, self).cleanup()
 
 if __name__ == '__main__':
     pass

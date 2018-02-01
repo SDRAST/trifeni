@@ -15,6 +15,7 @@ except ImportError:
 
 import paramiko
 
+from .shell_util import check_connection
 from ..configuration import config
 
 __all__ = [
@@ -27,6 +28,9 @@ module_logger = logging.getLogger(__name__)
 class ForwardServer(SocketServer.ThreadingTCPServer):
     daemon_threads = True
     allow_reuse_address = True
+    def server_bind(self):
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind(self.server_address)
 
 class ForwardHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -117,6 +121,10 @@ class ReverseHandler(object):
             self.reverse_thread.wait()
             self.reverse_thread.join()
 
+    def close(self):
+        pass
+
+
 class SSHTunnel(object):
     """
     """
@@ -140,10 +148,16 @@ class SSHTunnel(object):
         self.open = True
 
     def destroy(self):
+        module_logger.debug("SSHTunnel.destroy: {} called".format(self.tunnel_id))
         if self.client is not None:
+            module_logger.debug("SSHTunnel.destroy calling self.client.close")
             self.client.close()
         if self.server is not None:
+            module_logger.debug("SSHTunnel.destroy calling self.server.shutdown")
             self.server.shutdown()
+            self.server.server_close()
+            # self.server.close()
+        self.thread.join()
         self.open = False
 
 class SSHTunnelManager(object):
@@ -216,8 +230,11 @@ class SSHTunnelManager(object):
                 chain_host = relay_ip
                 chain_port = remote_port
                 ssh_transport = transport
-            server = ForwardServer(("", local_port), SubHander)
-            return server
+            def server_factory():
+                return ForwardServer(("", local_port), SubHander)
+            # if not check_connection(server_factory):
+            #     raise RuntimeError("Couldn't create tunnel")
+            return server_factory()
 
         def reverse_tunnel():
             transport.request_port_forward("", local_port)
@@ -236,14 +253,17 @@ class SSHTunnelManager(object):
                         relay_ip=relay_ip,local_port=local_port,
                         remote_port=remote_port,port=port,username=username,
                         tunnel_id=tunnel_id,tunnel_thread=tunnel_thread,
-                        client=client)
+                        server=server,client=client)
         self.tunnels[tunnel_id] = tunnel
         return tunnel
+
+    # def _forward_tunnel_server(self):
 
     def cleanup(self):
         """
         Destroy all the tunnels associated with the manager.
         """
         for tunnel_id in self.tunnels:
-            self.logger.debug("Destroying thread {}".format(tunnel_id))
+            self.logger.debug("Destroying tunnel {}".format(tunnel_id))
             self.tunnels[tunnel_id].destroy()
+            # del self.tunnels[tunnel_id]

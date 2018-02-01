@@ -19,46 +19,54 @@ class TestNameServerTunnnel(create_tunnel_test()):
                                         ns_port=9090, local=True)
 
     def tearDown(self):
+        module_logger.info("tearDown: {}".format([self.ns_tunnel.tunnels[t].open for t in self.ns_tunnel.tunnels]))
         self.ns_tunnel.cleanup()
+        module_logger.info("tearDown: {}".format([self.ns_tunnel.tunnels[t].open for t in self.ns_tunnel.tunnels]))
         self.ns_tunnel_local.cleanup()
 
+    # @unittest.skip("")
     def test_list_daemons(self):
         daemons = self.ns_tunnel.list()
-        module_logger.debug("test_list_daemons: {}".format(daemons))
+        module_logger.info("test_list_daemons: {}".format(daemons))
         self.assertTrue(isinstance(daemons, dict))
         self.assertTrue("TestServer" in daemons)
 
-    @unittest.skip("")
+    # @unittest.skip("")
     def test_list_daemons_local(self):
         daemons = self.ns_tunnel_local.list()
-        module_logger.debug("test_list_daemons_local: {}".format(daemons))
+        module_logger.info("test_list_daemons_local: {}".format(daemons))
         self.assertTrue(isinstance(daemons, dict))
         self.assertTrue("TestServer" in daemons)
 
-    @unittest.skip("")
+    # @unittest.skip("")
     def test_get_remote_object(self):
-        test_server_proxy = self.ns_tunnel.get_remote_object("TestServer")
+        test_server_proxy = self.ns_tunnel.get_remote_object("TestServer",
+                                                        local_obj_port=50001)
+        module_logger.info("test_get_remote_object: got {} from get_remote_object".format(test_server_proxy))
+        self.assertTrue(test_server_proxy.square(2) == 4)
 
-    @unittest.skip("")
+    # @unittest.skip("")
     def test_get_remote_object_local(self):
         test_server_proxy = self.ns_tunnel_local.get_remote_object("TestServer")
+        module_logger.info("test_get_remote_object_local: got {} from get_remote_object".format(test_server_proxy))
+        self.assertTrue(test_server_proxy.square(2) == 4)
 
-@unittest.skip("")
+# @unittest.skip("")
 class TestDaemonTunnel(create_tunnel_test()):
 
     def test_get_remote_object(self):
         uri = "PYRO:TestServer@localhost:50001"
-        dt = DaemonTunnel(remote_server_name="me")
-        p = dt.get_remote_object(uri, remote_port=50000)
-        self.assertTrue(p.square(2) == 4)
+        with DaemonTunnel(remote_server_name="me") as dt:
+            p = dt.get_remote_object(uri, remote_port=50000)
+            self.assertTrue(p.square(2) == 4)
 
     def test_get_remote_object_local(self):
         uri = "PYRO:TestServer@localhost:50000"
-        dt = DaemonTunnel(remote_server_name="me",local=True)
-        p = dt.get_remote_object(uri)
-        self.assertTrue(p.square(2) == 4)
+        with DaemonTunnel(remote_server_name="me",local=True) as dt:
+            p = dt.get_remote_object(uri)
+            self.assertTrue(p.square(2) == 4)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger("paramiko").setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger("paramiko").setLevel(logging.ERROR)
     unittest.main()
