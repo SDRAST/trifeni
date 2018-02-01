@@ -49,7 +49,11 @@ class DaemonTunnel(Pyro4Tunnel):
                 remote_port = obj_port
             self.create_tunnel(int(obj_port), int(remote_port), reverse=reverse)
             proxy = proxy_class(uri)
-            check_connection(proxy._pyroBind)
+            if not check_connection(proxy._pyroBind):
+                raise TunnelError(
+                    ("Failed to create tunneled connection to object with uri {}, "
+                     "forwarding port {} to {}").format(uri, obj_port, remote_port)
+                )
         else:
             proxy = proxy_class(uri)
         return proxy
@@ -101,8 +105,8 @@ class NameServerTunnel(Pyro4Tunnel):
         if not self.local:
             self.create_tunnel(local_ns_port, self.ns_port,**self.create_tunnel_kwargs)
             # now we check the connection to see if its running.
-            if check_connection(Pyro4.locateNS, args=(local_ns_port, self.ns_port)):
-                return Pyro4.locateNS(self.ns_host, self.ns_port)
+            if check_connection(Pyro4.locateNS, args=(self.ns_host, local_ns_port)):
+                return Pyro4.locateNS(self.ns_host, local_ns_port)
             else:
                 # Would be cool to add ip address and stuff to error message.
                 exc = TunnelError("Failed to find NameServer on tunnel.")

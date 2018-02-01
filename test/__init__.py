@@ -29,7 +29,7 @@ def create_tunnel_test():
             ns_thread.daemon = True
             ns_thread.start()
 
-            with Pyro4.locateNS() as ns:
+            with Pyro4.locateNS(port=ns_port) as ns:
                 daemon = Pyro4.Daemon(port=obj_port)
                 uri = daemon.register(server, objectId=server.__class__.__name__)
                 ns.register(server.__class__.__name__, uri)
@@ -41,5 +41,13 @@ def create_tunnel_test():
             cls.host = host
             cls.ns_port = ns_port
             cls.obj_port = obj_port
+
+            cls.ns_daemon = ns_daemon
+            cls.obj_daemon = daemon
+
+        @classmethod
+        def tearDownClass(cls):
+            cls.obj_daemon.shutdown()
+            cls.ns_daemon.shutdown()
 
     return BaseTest
