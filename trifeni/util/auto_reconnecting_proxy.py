@@ -1,7 +1,5 @@
 import Pyro4
 
-from . import module_logger
-
 __all__ = ["AutoReconnectingProxy"]
 
 class AutoReconnectingProxy(Pyro4.core.Proxy):

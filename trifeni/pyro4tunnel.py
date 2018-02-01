@@ -1,7 +1,7 @@
 import logging
 import Pyro4
 
-from .util import SSHTunnelManager
+from .util import SSHTunnelManager, check_connection
 
 __all__ = ["TunnelError", "Pyro4Tunnel", "DaemonTunnel", "NameServerTunnel"]
 
@@ -48,7 +48,11 @@ class DaemonTunnel(Pyro4Tunnel):
             if remote_port is None:
                 remote_port = obj_port
             self.create_tunnel(int(obj_port), int(remote_port), reverse=reverse)
-        return proxy_class(uri)
+            proxy = proxy_class(uri)
+            check_connection(proxy._pyroBind)
+        else:
+            proxy = proxy_class(uri)
+        return proxy
 
 class NameServerTunnel(Pyro4Tunnel):
     """
@@ -56,16 +60,33 @@ class NameServerTunnel(Pyro4Tunnel):
     """
     def __init__(self, ns_host="localhost",
                        ns_port=9090,
+                       local_ns_port=None,
                        **kwargs):
 
         super(NameServerTunnel, self).__init__(**kwargs)
         self.ns_host = ns_host
         self.ns_port = int(ns_port)
-        self.ns = self.find_nameserver()
+        self.ns = self.find_nameserver(local_ns_port=local_ns_port)
 
-    def find_nameserver(self):
+    def __getattr__(self, attr):
         """
-        Find the remote nameserver.
+        Act like we're interacting with a Pyro4 nameserver proxy.
+        """
+        if self.ns is not None:
+            return getattr(self.ns, attr)
+        else:
+            raise TunnelError("Coulnd't find nameserver attribute")
+
+    def find_nameserver(self,local_ns_port=None):
+        """
+        Find the remote nameserver. This gets called by __init__.
+        Keyword Args:
+            local_ns_port (int): Use a local forwarding port that is different
+                from self.ns_port. This feature is seldom used, but it might
+                be useful if you have a nameserver running locally _and_ remotely.
+                If I have the remote running on 9090, and the local running on 9090,
+                I could set local_ns_port = 9091 to avoid conflict with the local
+                nameserver.
         Returns:
             Pyro4.naming.NameServer
         """
@@ -74,11 +95,13 @@ class NameServerTunnel(Pyro4Tunnel):
                 self.remote_server_name, self.ns_port
             )
         )
-        # First we create ssh tunnel to remote ip.
+        if local_ns_port is None:
+            local_ns_port = self.ns_port
+
         if not self.local:
-            self.create_tunnel(self.ns_port, self.ns_port,**self.create_tunnel_kwargs)
+            self.create_tunnel(local_ns_port, self.ns_port,**self.create_tunnel_kwargs)
             # now we check the connection to see if its running.
-            if check_connection(Pyro4.locateNS, args=(self.ns_host, self.ns_port)):
+            if check_connection(Pyro4.locateNS, args=(local_ns_port, self.ns_port)):
                 return Pyro4.locateNS(self.ns_host, self.ns_port)
             else:
                 # Would be cool to add ip address and stuff to error message.
@@ -86,7 +109,7 @@ class NameServerTunnel(Pyro4Tunnel):
                 exc.details = {'remote_server_name':self.remote_server_name}
                 raise exc
         else:
-            return Pyro4.locateNS(self.ns_host, self.ns_port)
+            return Pyro4.locateNS(self.ns_host, local_ns_port)
 
     def register_remote_daemon(self, daemon, reverse=True, **kwargs):
         """

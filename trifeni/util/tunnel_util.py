@@ -15,7 +15,7 @@ except ImportError:
 
 import paramiko
 
-from .configuration import config, config_logger
+from ..configuration import config
 
 __all__ = [
     "SSHTunnel",
