@@ -19,6 +19,8 @@ associated with the object.
 
 - Fixed bug where pyro4tunneling needs ~/.ssh/config to exist.
 
+## Change name to `trifeni`
+
 ### Version 2.0.0
 
 - Complete backend and API overhaul, to the point where I considered just
@@ -28,4 +30,5 @@ starting a new project.
 - API changes:
     - Pyro4Tunnel -> NameServerTunnel
     - Addition of DaemonTunnel that allows for creating tunnels to a Pyro Daemon
-        given only a uri.
+        given only a uri. This behavior can be a little wonky, especially if the
+        local port differs from the remote port.

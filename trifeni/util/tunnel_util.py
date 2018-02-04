@@ -397,6 +397,7 @@ def test_port(port, host="localhost"):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         sock.bind((host, port))
+        sock.close()
         # sock.shutdown(1)
         # sock.server_close()
     except socket.error as err:

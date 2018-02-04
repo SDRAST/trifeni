@@ -31,6 +31,18 @@ me@local: python
 4
 ```
 
+### Testing
+
+Testing can be a little tricky. The tests in `test` assume that you have a ssh
+alias "me" setup in your "~/.ssh/config" file. In addition, it assumes that
+you don't have anything open and running on ports 9090, 9091, 50000 and 50001.
+
+Once your system is setup, you can run tests as follows:
+
+```
+/path/to/trifeni$ python -m unittest discover -s test -t .
+```
+
 #### Configuration
 
 Let's say that you get tired of writing in the ssh details for a remote machine. `trifeni` has a few ways of

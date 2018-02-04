@@ -2,7 +2,7 @@ import unittest
 import logging
 import os
 
-from pyro4tunneling import config
+from trifeni import config
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 
