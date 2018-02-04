@@ -18,7 +18,7 @@ class TestSSHTunnel(create_tunnel_test()):
         SSHTunnel won't catch the error, because remote_ip = relay_ip,
         but there will be a socket.error down the line
         """
-        with self.assertRaises(socket.error):
+        with self.assertRaises(RuntimeError):
             tunnel = SSHTunnel("me", "localhost", 50000, 50000)
 
     def test_create_local_tunnel(self):
@@ -33,7 +33,7 @@ class TestSSHTunnel(create_tunnel_test()):
     def test_destroy(self):
         """You have to call destroy, or use a context manager!"""
         tunnel = SSHTunnel("me", "localhost", 50001, 50000)
-        with self.assertRaises(socket.error):
+        with self.assertRaises(RuntimeError):
             tunnel2 = SSHTunnel("me", "localhost", 50001, 50000)
 
 # @unittest.skip("")
@@ -42,10 +42,12 @@ class TestNameServerTunnnel(create_tunnel_test()):
     def setUp(self):
         self.ns_tunnel = NameServerTunnel(remote_server_name="me",
                                         ns_port=9090, local_ns_port=9091)
-
         self.ns_tunnel_local = NameServerTunnel(remote_server_name="me",
                                         ns_port=9090, local=True)
-
+        uri = "PYRO:TestServer@localhost:50001"
+        with DaemonTunnel(remote_server_name="me") as dt:
+            p = dt.get_remote_object(uri, remote_port=50000)
+            self.assertTrue(p.square(2) == 4)
     def tearDown(self):
         self.ns_tunnel.cleanup()
         self.ns_tunnel_local.cleanup()
@@ -66,6 +68,11 @@ class TestNameServerTunnnel(create_tunnel_test()):
 
     # @unittest.skip("")
     def test_get_remote_object(self):
+        # uri = "PYRO:TestServer@localhost:50001"
+        # with DaemonTunnel(remote_server_name="me") as dt:
+        #     p = dt.get_remote_object(uri, remote_port=50000)
+        #     self.assertTrue(p.square(2) == 4)
+        #
         test_server_proxy = self.ns_tunnel.get_remote_object("TestServer",
                                                         local_obj_port=50001)
         module_logger.debug("test_get_remote_object: got {} from get_remote_object".format(test_server_proxy))

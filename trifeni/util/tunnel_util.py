@@ -298,12 +298,12 @@ class SSHTunnel(object):
         """
         Returns True if there is a conflict, False if there isn't one.
         """
-        if self.remote_ip == self.relay_ip:
-            self.logger.debug(("Won't determine if there will be conflicts if "
-                               "relay_ip and remote_ip are the same"))
-            return False
-        else:
-            return test_port(self.local_port, host=self.relay_ip)
+        # if self.remote_ip == self.relay_ip:
+        #     self.logger.debug(("Won't determine if there will be conflicts if "
+        #                        "relay_ip and remote_ip are the same"))
+            # return False
+        # else:
+        return test_port(self.local_port, host=self.relay_ip)
 
     def destroy(self):
         """Destroy the tunnel."""
@@ -386,19 +386,24 @@ class SSHTunnelManager(object):
 
 def test_port(port, host="localhost"):
     """
-    Determine if a port is already being used.
+    Determine if a port is already being used. Returns False if not bound,
+    True if bound.
     Args:
         port (int): The port to check
     Keyword Args:
         host (str): The host to attempt to bind on ("localhost")
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         sock.bind((host, port))
+        # sock.shutdown(1)
+        # sock.server_close()
     except socket.error as err:
         if err.errno == 98:
             module_logger.debug("test_port: {}".format(err))
             return True
         else:
             raise err
+
     return False
