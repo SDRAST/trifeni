@@ -27,6 +27,20 @@ class Pyro4Tunnel(SSHTunnelManager):
         if not create_tunnel_kwargs: create_tunnel_kwargs = {}
         self.create_tunnel_kwargs = create_tunnel_kwargs
 
+    def register_remote_daemon(self, daemon, reverse=True):
+        """
+        Register a remote daemon with the NameServerObject. This creates a
+        tunnel to the daemon object. Note that in "local" mode there
+        is no reason to
+        Args:
+            daemon (Pyro4.Daemon):
+        Returns:
+            bool: Whether or not the connection was already there.
+        """
+        if not self.local:
+            daemon_host, daemon_port = daemon.locationStr.split(":")
+            self.create_tunnel(int(daemon_port), int(daemon_port), reverse=reverse, **self.create_tunnel_kwargs)
+
     def create_tunnel(self, local_port, remote_port, reverse=False):
         return super(Pyro4Tunnel, self).create_tunnel(
             self.remote_server_name, self.relay_ip, local_port, remote_port,
@@ -114,20 +128,6 @@ class NameServerTunnel(Pyro4Tunnel):
                 raise exc
         else:
             return Pyro4.locateNS(self.ns_host, local_ns_port)
-
-    def register_remote_daemon(self, daemon, reverse=True, **kwargs):
-        """
-        Register a remote daemon with the NameServerObject. This creates a
-        tunnel to the daemon object. Note that in "local" mode there
-        is no reason to
-        Args:
-            daemon (Pyro4.Daemon):
-        Returns:
-            bool: Whether or not the connection was already there.
-        """
-        if not self.local:
-            daemon_host, daemon_port = daemon.locationStr.split(":")
-            self.create_tunnel(daemon_port, daemon_port, reverse=reverse, **self.create_tunnel_kwargs)
 
     def get_remote_object(self, remote_obj_name, local_obj_port=None, proxy_class=None):
         """

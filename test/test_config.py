@@ -22,6 +22,6 @@ class TestConfig(unittest.TestCase):
         config.hosts = {}
 
 if __name__ == "__main__":
-    logging.basicConfig(loglevel=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
 
     unittest.main()

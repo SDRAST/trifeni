@@ -75,14 +75,18 @@ class ForwardHandler(SocketServer.BaseRequestHandler):
 
 class ReverseHandler(object):
 
-    def __init__(self, transport):
+    def __init__(self, transport, relay_ip, remote_port):
+
         self.running = threading.Event()
         self.running.set()
         self.transport = transport
+        self.relay_ip = relay_ip
+        self.remote_port = remote_port
         self.reverse_thread = None
 
-    def reverse_handler(chan, host, port):
+    def reverse_handler(self, chan):
         sock = socket.socket()
+        host, port = self.relay_ip, self.remote_port
         try:
             sock.connect((host, port))
         except Exception as err:
@@ -108,21 +112,26 @@ class ReverseHandler(object):
         module_logger.debug("Tunnel closed from {}".format(chan.origin_addr,))
 
     def serve_forever(self):
+        module_logger.debug("ReverseHandler.serve_forever: called")
         while self.running.is_set():
+            module_logger.debug("ReverseHandler.serve_forever: top of while loop")
             chan = self.transport.accept(1000)
             if chan is None:
                 continue
-            reverse_thread = threading.Thread(target=reverse_handler, args=(chan, relay_ip, remote_port))
-            reverse_thread.daemon = True
-            reverse_thread.start()
+            self.reverse_thread = threading.Thread(target=self.reverse_handler, args=(chan,))
+            self.reverse_thread.daemon = True
+            self.reverse_thread.start()
+            module_logger.debug("ReverseHandler.shutdown: bottom of while loop")
 
     def shutdown(self):
+        module_logger.debug("ReverseHandler.shutdown: called")
         self.running.clear()
+        module_logger.debug("ReverseHandler.shutdown: self.running cleared")
         if self.reverse_thread is not None:
-            self.reverse_thread.wait()
             self.reverse_thread.join()
+        module_logger.debug("ReverseHandler.shutdown: finished")
 
-    def close(self):
+    def server_close(self):
         pass
 
 
@@ -226,10 +235,13 @@ class SSHTunnel(object):
         self.server = None
         self.open = False
 
-        if not self.check_conflict():
+        if self.reverse:
             self.connect(look_for_keys=look_for_keys, wait_for_password=wait_for_password)
         else:
-            raise RuntimeError("Will not be able to bind {}:{}".format(self.relay_ip, self.local_port))
+            if not self.check_conflict():
+                self.connect(look_for_keys=look_for_keys, wait_for_password=wait_for_password)
+            else:
+                raise RuntimeError("Will not be able to bind {}:{}".format(self.relay_ip, self.local_port))
 
     def connect(self,look_for_keys=False, wait_for_password=False):
         """
@@ -261,7 +273,7 @@ class SSHTunnel(object):
                            look_for_keys=look_for_keys, password=password)
 
         except Exception as err:
-            self.logger.error("create_tunnel: Failed to connect to {}:{}: {}".format(remote_ip,port, err))
+            self.logger.error("create_tunnel: Failed to connect to {}:{}: {}".format(self.remote_ip, self.port, err))
             return
 
         transport = client.get_transport()
@@ -277,7 +289,7 @@ class SSHTunnel(object):
 
         def reverse_tunnel():
             transport.request_port_forward("", self.local_port)
-            server = ReverseHandler(transport)
+            server = ReverseHandler(transport, self.relay_ip, self.remote_port)
             return server
 
         if self.reverse:
@@ -307,15 +319,18 @@ class SSHTunnel(object):
 
     def destroy(self):
         """Destroy the tunnel."""
-        module_logger.debug("destroy: {} called".format(self.tunnel_id))
+        self.logger.debug("destroy: {} called".format(self.tunnel_id))
         if self.client is not None:
-            module_logger.debug("destroy calling self.client.close")
+            self.logger.debug("destroy: calling self.client.close")
             self.client.close()
         if self.server is not None:
-            module_logger.debug("destroy calling self.server.shutdown")
+            self.logger.debug("destroy: calling self.server.shutdown")
             self.server.shutdown()
             self.server.server_close() # this is necessary to completely unbind the server.
-        self.tunnel_thread.join()
+        # module_logger.debug("destroy: joining tunnel thread")
+        # module_logger.debug("destroy: self.tunnel_thread.daemon: {}".format(self.tunnel_thread.daemon))
+        # self.tunnel_thread.join()
+        # module_logger.debug("destroy: tunnel thread joined")
         self.open = False
 
     def __enter__(self):
@@ -363,8 +378,9 @@ class SSHTunnelManager(object):
         Destroy all the tunnels associated with the manager. Note that this
         doesn't actually delete the SSHTunnel objects from memory.
         """
+        self.logger.debug("cleanup: Killing {} tunnels".format(len(self.tunnels)))
         for tunnel_id in self.tunnels:
-            self.logger.debug("Destroying tunnel {}".format(tunnel_id))
+            self.logger.debug("cleanup: Destroying tunnel {}".format(tunnel_id))
             self.tunnels[tunnel_id].destroy()
 
     def tunnel_status(self):
