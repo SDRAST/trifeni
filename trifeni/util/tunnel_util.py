@@ -226,7 +226,10 @@ class SSHTunnel(object):
         self.server = None
         self.open = False
 
-        self.connect(look_for_keys=look_for_keys, wait_for_password=wait_for_password)
+        if not self.check_conflict():
+            self.connect(look_for_keys=look_for_keys, wait_for_password=wait_for_password)
+        else:
+            raise RuntimeError("Will not be able to bind {}:{}".format(self.relay_ip, self.local_port))
 
     def connect(self,look_for_keys=False, wait_for_password=False):
         """
@@ -291,6 +294,17 @@ class SSHTunnel(object):
         self.tunnel_thread = tunnel_thread
         self.open = True
 
+    def check_conflict(self):
+        """
+        Returns True if there is a conflict, False if there isn't one.
+        """
+        if self.remote_ip == self.relay_ip:
+            self.logger.debug(("Won't determine if there will be conflicts if "
+                               "relay_ip and remote_ip are the same"))
+            return False
+        else:
+            return test_port(self.local_port, host=self.relay_ip)
+
     def destroy(self):
         """Destroy the tunnel."""
         module_logger.debug("destroy: {} called".format(self.tunnel_id))
@@ -312,13 +326,7 @@ class SSHTunnel(object):
 
 class SSHTunnelManager(object):
     """
-    Create and manage SSH tunnel connections. The SSHTunnel.connect method
-    does not attempt to prevent tunnel collisions, ie tunnels trying to bind
-    on the same ports. When creating tunnels on the command line, the ssh cli
-    will simply not do the port forwarding/reversing, instead just logging the
-    user into the remote server. With the paramiko/socket server approach,
-    the socket server will throw an error if attempting to bind on an address
-    that is being used.
+    Create and manage SSH tunnel connections.
     """
     def __init__(self, logger=None):
         self.tunnels = {}
@@ -330,21 +338,17 @@ class SSHTunnelManager(object):
     def create_tunnel(self, remote_ip, relay_ip, local_port, remote_port, **kwargs):
         """Create an instance of SSHTunnel and add it to the tunnels attribute
         and attempt to detect whether there will be collisions.
-
-        In principle we could get away with not checking the tunnels associated
-        with this manager, but I think it results in errors that are easier to
-        understand/handle, versus a random socket error.
         """
         local_ports = [(self.tunnels[_id].relay_ip, self.tunnels[_id].local_port) for _id in self.tunnels]
         if (relay_ip, local_port) in local_ports:
-            raise RuntimeError(
+            self.logger.debug(
                 ("This tunnel manager is already responsible "
                  "for a tunnel bound to {}:{}").format(relay_ip, local_port))
-        if not test_port(local_port, host=relay_ip):
-            tunnel = SSHTunnel(remote_ip, relay_ip, local_port, remote_port, **kwargs)
-            self.tunnels[tunnel.tunnel_id] = tunnel
-        else:
-            raise RuntimeError("Can't bind to {}:{}".format(relay_ip, local_port))
+            return
+
+        tunnel = SSHTunnel(remote_ip, relay_ip, local_port, remote_port, **kwargs)
+        self.tunnels[tunnel.tunnel_id] = tunnel
+        return tunnel
 
     def destroy_tunnel(self, _id):
         """
@@ -393,6 +397,7 @@ def test_port(port, host="localhost"):
         sock.bind((host, port))
     except socket.error as err:
         if err.errno == 98:
+            module_logger.debug("test_port: {}".format(err))
             return True
         else:
             raise err

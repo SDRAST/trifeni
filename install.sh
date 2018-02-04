@@ -4,7 +4,7 @@ BLUE='\033[0;34m'
 WHITE='\033[0;37m'
 RED='\033[0;31m'
 NC='\033[0m'
-PACKAGE="pyro4tunneling"
+PACKAGE="trifeni"
 PACKAGE_NAME="${BLUE}${PACKAGE}${NC}"
 INSTALLER_NAME="${WHITE}${PACKAGE} Installer: ${NC}"
 

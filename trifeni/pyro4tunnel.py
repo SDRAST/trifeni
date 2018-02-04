@@ -54,7 +54,7 @@ class DaemonTunnel(Pyro4Tunnel):
                     ("Failed to create tunneled connection to object with uri {}, "
                      "forwarding port {} to {}").format(uri, obj_port, remote_port)
                 )
-        else:
+        elif self.local:
             proxy = proxy_class(uri)
         return proxy
 
