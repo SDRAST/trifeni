@@ -6,7 +6,7 @@ Author Dean Shaff
 from __future__ import print_function
 import logging
 
-__version__ = "2.0.0a"
+__version__ = "2.0.0b"
 
 module_logger = logging.getLogger(__name__)
 
