@@ -1,5 +1,7 @@
 ## trifeni
 
+triveni -> تريفيني -> trifeni  
+
 (Used to be pyro4tunneling).
 
 Access Pyro4 objects sitting on remote servers.

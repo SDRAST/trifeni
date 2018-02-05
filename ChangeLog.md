@@ -28,7 +28,8 @@ starting a new project.
 - Backend changes:
     - Now using `paramiko` instead of `subprocess.Popen` to create tunnels.
 - API changes:
-    - Pyro4Tunnel -> NameServerTunnel
+    - NameServerTunnel now takes the place of Pyro4Tunnel. There is a
+        Pyro4Tunnel class, but this shouldn't be used for attempting to access
+        a remote nameserver.
     - Addition of DaemonTunnel that allows for creating tunnels to a Pyro Daemon
-        given only a uri. This behavior can be a little wonky, especially if the
-        local port differs from the remote port.
+        given only a uri.
