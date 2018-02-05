@@ -17,6 +17,7 @@ import paramiko
 
 from .shell_util import check_connection
 from ..configuration import config
+from ..errors import TunnelError
 
 __all__ = [
     "SSHTunnel",
@@ -241,7 +242,7 @@ class SSHTunnel(object):
             if not self.check_conflict():
                 self.connect(look_for_keys=look_for_keys, wait_for_password=wait_for_password)
             else:
-                raise RuntimeError("Will not be able to bind {}:{}".format(self.relay_ip, self.local_port))
+                raise TunnelError("Will not be able to bind {}:{}".format(self.relay_ip, self.local_port))
 
     def connect(self,look_for_keys=False, wait_for_password=False):
         """

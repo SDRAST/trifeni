@@ -2,13 +2,11 @@ import logging
 import Pyro4
 
 from .util import SSHTunnelManager, check_connection
+from .errors import TunnelError
 
-__all__ = ["TunnelError", "Pyro4Tunnel", "DaemonTunnel", "NameServerTunnel"]
+__all__ = ["Pyro4Tunnel", "DaemonTunnel", "NameServerTunnel"]
 
 module_logger = logging.getLogger(__name__)
-
-class TunnelError(Pyro4.errors.CommunicationError):
-    pass
 
 class Pyro4Tunnel(SSHTunnelManager):
 
