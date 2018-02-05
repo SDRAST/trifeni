@@ -1,0 +1,15 @@
+.idea/
+build/
+dist/
+pyro4tunneling.egg-info/
+*.pyc
+*.pyo
+*.hdf5
+*.txt
+*.log
+process.py
+pyro4tunneling/forward.py
+pyro4tunneling/reverse.py
+sandbox/
+deprecated/
+Pyro4/
