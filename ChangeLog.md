@@ -33,3 +33,8 @@ starting a new project.
         a remote nameserver.
     - Addition of DaemonTunnel that allows for creating tunnels to a Pyro Daemon
         given only a uri.
+    - SSH keys are not _required_, but they do make things work a lot better. Without
+        SSH keys, `trifeni` will prompt the user for the password to the remote server
+        _every time_ it creates a new tunnel. For accessing an object on a remote nameserver
+        and setting up a reverse SSH tunnel to a local daemon, this means entering a
+        password _three_ times.

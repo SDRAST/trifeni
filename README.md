@@ -13,25 +13,42 @@ Access Pyro4 objects sitting on remote servers.
 ```
 ### Usage
 
-The first thing is to launch the nameserver/server on the remote machine.
-In the commandline:
-
-```bash
-me@remote:/path/to/trifeni/$> pyro4-ns &
-me@remote:/path/to/trifeni/$> python examples/basic_pyro4_server.py # pass with -nsp to specify namserver port
-```
-
-Now, with the 'BasicServer' running on port 50001 on the remote machine,
-we can access it locally.
+Say we have some object, `BasicServer`, running with URI `PYRO:BasicServer@localhost:55000`.
+(See examples/basic_pyro4_server.py) on a remote (not accessible on the LAN) server.
+I might access it as follows:
 
 ```python
-me@local: python
->>> from trifeni import NameServerTunnel
->>> t = NameServerTunnel(remote_server_name='remote', remote_port=22, ns_port=9090, remote_username="me")
->>> basic_server = t.get_remote_object('BasicServer')
->>> basic_server.square(2)
-4
+# example.py
+import trifeni
+
+uri = "PYRO:BasicServer@localhost:55000"
+
+with trifeni.DaemonTunnel(remote_server_name="remote") as dt:
+    obj_proxy = dt.get_remote_object(uri)
+    obj_proxy.square(10)
 ```
+
+Running this script produces the following output:
+
+```
+me@local:/path/to/example/py$ python example.py
+>>> 100
+```
+
+This example assumes that we have a SSH alias setup with name "remote". The
+entry in the ~/.ssh/config file might look as follows:
+
+```
+# ~/.ssh.config
+
+host remote
+ HostName remote.address
+ Port 22
+ User me
+ IdentityFile ~/.ssh/id_rsa
+```
+
+See examples for more information. 
 
 ### Testing
 
