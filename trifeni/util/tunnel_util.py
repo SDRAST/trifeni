@@ -91,10 +91,10 @@ class ReverseHandler(object):
         try:
             sock.connect((host, port))
         except Exception as err:
-            module_logger.debug("handler: Forwarding request to {}:{} failed: {}".format(host, port, err))
+            module_logger.debug("ReverseHandler.reverse_handler: Forwarding request to {}:{} failed: {}".format(host, port, err))
             return
 
-        module_logger.debug("handler: Connected!  Tunnel open {} -> {} -> {}".format(chan.origin_addr,
+        module_logger.debug("ReverseHandler.reverse_handler: Connected!  Tunnel open {} -> {} -> {}".format(chan.origin_addr,
                                                             chan.getpeername(), (host, port)))
         while self.running.is_set():
             r, w, x = select.select([sock, chan], [], [])
@@ -110,7 +110,7 @@ class ReverseHandler(object):
                 sock.send(data)
         chan.close()
         sock.close()
-        module_logger.debug("Tunnel closed from {}".format(chan.origin_addr,))
+        module_logger.debug("ReverseHandler.reverse_handler: Tunnel closed from {}".format(chan.origin_addr,))
 
     def serve_forever(self):
         module_logger.debug("ReverseHandler.serve_forever: called")
