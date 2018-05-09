@@ -1,6 +1,6 @@
 import logging
 
-from pyro4tunneling import Pyro4Tunnel, config
+from trifeni import NameServerTunnel, config
 
 config.ssh_configure("./pyro4tunneling.json")
 
