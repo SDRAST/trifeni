@@ -18,13 +18,11 @@ class Process(object):
     Class representing a basic process, with name and pid.
     A Process object is used to represent an already running process.
     To spawn a new process, use subprocess.subprocess.Popen.
-    Public Attributes:
+
+    Attributes:
         name (str): The name of the process
         pid (int): The process ID
-    Public Members:
-        kill: kill the process
     """
-
     def __init__(self, name="", pid=0, ps_line=None, command_name='ssh'):
         """
         Create Process instance.
@@ -61,6 +59,7 @@ class Process(object):
 def invoke_cmd(command, command_input=None):
     """
     Create a subprocess.Popen instance corresponding to a bash command.
+
     Args:
         command (str): The command to be invoked
     """
@@ -78,6 +77,7 @@ def invoke_cmd(command, command_input=None):
 def pipe_cmds(command1, command2):
     """
     Pipe to commands together. Useful for things like `ps x | grep python`
+
     Args:
         command1 (str): The initial command to run
         command2 (str): The command to receive stdout of command1
@@ -97,11 +97,11 @@ def pipe_cmds(command1, command2):
 
 def kill_processes(search_term, match_template=None):
     """
-    Kill processes that contain match_template
+    Kill processes that contain match_template.
+
     Args:
         search_term (str): The process to look for (python, ssh)
-    Keyword Arguments:
-        match_template (str): A string that processes should contain in order to
+        match_template (str, optional): A string that processes should contain in order to
             be killed.
     """
     processes = pipe_cmds("ps x","grep {}".format(search_term))
@@ -113,13 +113,13 @@ def kill_processes(search_term, match_template=None):
 def check_connection(callback, timeout=1.0, attempts=10, args=None, kwargs=None):
     """
     Check to see if a connection is viable, by running a callback.
+
     Args:
         callback: The callback to test the connection
-    Keyword Args:
-        timeout (float): The amount of time to wait before trying again
-        attempts (int): The number of times to try to connect.
-        args: To be passed to callback
-        kwargs: To be passed to callback
+        timeout (float, optional): The amount of time to wait before trying again
+        attempts (int, optional): The number of times to try to connect.
+        *args: To be passed to callback
+        **kwargs: To be passed to callback
 
     Returns:
         bool: True if the connection was successful, False if not successful.
@@ -149,18 +149,19 @@ def arbitrary_tunnel(remote_ip, relay_ip,
     has successfully connected.
 
     Executes the following command (if reverse is False, otherwise the -L is replaced with -R):
-    ```
-    ssh  -p {port} -l {username} -L {local_port}:{relay_ip}:{remote_port} {remote_ip}
-    ```
+
+    .. code-block:: none
+    
+        ssh  -p {port} -l {username} -L {local_port}:{relay_ip}:{remote_port} {remote_ip}
+
     Args:
         remote_ip (str): The remote, or target ip address.
             For local port forwarding this can be localhost
         relay_ip (str): The relay ip address.
         local_port (int): The local port on which we listen
         remote_port (int): The remote port on which we listen
-    Keyword Args:
-        port (int): The -p argument for ssh
-        username (str): The username to use for tunneling
+        port (int, optional): The -p argument for ssh
+        username (str, optional): The username to use for tunneling
     Returns:
         subprocess.Popen: if there isn't an existing process corresponding to tunnel:
             or else Process instance, the corresponds to already running tunnel command.
